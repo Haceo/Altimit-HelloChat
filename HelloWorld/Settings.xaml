@@ -1,0 +1,34 @@
+﻿<Window x:Class="HelloWorld.Settings"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:HelloWorld"
+        mc:Ignorable="d"
+        Title="Settings" SizeToContent="WidthAndHeight" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Loaded="WPF_Loaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Label Content="Twitch Token:" Grid.Row="0"/>
+        <Label Content="Twitch Client ID:" Grid.Row="1"/>
+        <Label Content="Twitch Username:" Grid.Row="2"/>
+        <Label Content="Twitch OAuth:" Grid.Row="3"/>
+
+        <TextBox Name="tokenBox" Grid.Row="0" Grid.Column="1" Width="150" HorizontalContentAlignment="Center" VerticalAlignment="Center" Margin="5"/>
+        <TextBox Name="clientIdBox" Grid.Row="1" Grid.Column="1" Width="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5"/>
+        <TextBox Name="usernameBox" Grid.Row="2" Grid.Column="1" Width="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5"/>
+        <TextBox Name="oAuthBox" Grid.Row="3" Grid.Column="1" Width="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5"/>
+
+        <Button Content="Save" Grid.Row="99" Grid.ColumnSpan="99" Width="100" Margin="0,10,110,10" Click="Save_Click"/>
+        <Button Content="Cancel" Grid.Row="99" Grid.ColumnSpan="99" Width="100" Margin="110,10,0,10" Click="Cancel_Click"/>
+    </Grid>
+</Window>
