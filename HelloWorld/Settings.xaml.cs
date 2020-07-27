@@ -17,6 +17,8 @@ namespace HelloWorld
                 clientIdBox.Text = _config.Client;
                 usernameBox.Text = _config.User;
                 oAuthBox.Text = _config.Auth;
+                helloEnable.IsChecked = _config.HelloEnabled;
+                rewardsEnable.IsChecked = _config.RewardsEnabled;
             }
         }
         private void Save_Click(object sender, RoutedEventArgs e)

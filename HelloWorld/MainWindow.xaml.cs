@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,6 +16,8 @@ using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Clients;
 using TwitchLib.Communication.Models;
+using TwitchLib.PubSub;
+using TwitchLib.PubSub.Events;
 
 namespace HelloWorld
 {
@@ -26,7 +29,23 @@ namespace HelloWorld
 
         public static TwitchAPI _api;
         public static TwitchClient _client;
+        public static string chanid = "";
+        public static TwitchPubSub pubSub;
         public bool IsConnected = false;
+        private string consoleString = "";
+        public string ConsoleString
+        {
+            get { return consoleString; }
+            set
+            {
+                consoleString = value;
+                RaisePropertyChanged("ConsoleString");
+                App.Current.Dispatcher.Invoke((Action)delegate
+                {
+                    consoleOutBox.ScrollToEnd();
+                });
+            }
+        }
         private ObservableCollection<FirstMessage> messages = new ObservableCollection<FirstMessage>();
         public ObservableCollection<FirstMessage> Messages
         {
@@ -35,6 +54,16 @@ namespace HelloWorld
             {
                 messages = value;
                 RaisePropertyChanged("Messages");
+            }
+        }
+        private ObservableCollection<HLMessage> rewards = new ObservableCollection<HLMessage>();
+        public ObservableCollection<HLMessage> Rewards
+        {
+            get { return rewards; }
+            set
+            {
+                rewards = value;
+                RaisePropertyChanged("Rewards");
             }
         }
         public event PropertyChangedEventHandler PropertyChanged;
@@ -138,6 +167,8 @@ namespace HelloWorld
                 config.User = sp.usernameBox.Text;
                 config.Auth = sp.oAuthBox.Text;
                 config.Client = sp.clientIdBox.Text;
+                config.HelloEnabled = sp.helloEnable.IsChecked.Value;
+                config.RewardsEnabled = sp.rewardsEnable.IsChecked.Value;
                 FileHandler("save", "config");
                 connectionButton.IsEnabled = false;
                 if (config != null && config.Client != "" && config.Auth != "" && config.Token != "" && config.User != "")
@@ -150,7 +181,7 @@ namespace HelloWorld
                 return;
             (helloListBox.ItemContainerGenerator.ContainerFromIndex(helloListBox.SelectedIndex) as ListViewItem).Visibility = Visibility.Collapsed;
         }
-        private void Clear_Click(object sender, RoutedEventArgs e)
+        private void ClearMessages_Click(object sender, RoutedEventArgs e)
         {
             int count = helloListBox.Items.Count;
             for (var i = 0; i < count; i++)
@@ -172,9 +203,10 @@ namespace HelloWorld
                 return;
             }
             connectionButton.Content = "Connecting...";
+            channelEntryBox.IsEnabled = false;
             _api.Settings.ClientId = config.Client;
             _api.Settings.AccessToken = config.Token;
-            _client = new TwitchClient();
+
             var cred = new ConnectionCredentials(config.User, config.Auth);
             var clientOptions = new ClientOptions
             {
@@ -182,23 +214,29 @@ namespace HelloWorld
                 ThrottlingPeriod = TimeSpan.FromSeconds(30)
             };
             WebSocketClient socClient = new WebSocketClient(clientOptions);
+            _client = new TwitchClient(socClient);
             _client.Initialize(cred, channelEntryBox.Text);
             _client.OnMessageReceived += MessageRecievedHandler;
+            //_client.OnLog += _client_OnLog;
             _client.Connect();
             IsConnected = true;
             connectionLight.Fill = Brushes.Green;
             connectionButton.Content = "Connected:";
         }
+
         private async Task DisconnectAsync()
         {
             Messages.Clear();
             _client.Disconnect();
             IsConnected = false;
             connectionLight.Fill = Brushes.Red;
+            channelEntryBox.IsEnabled = true;
         }
 
         private void MessageRecievedHandler(object sender, OnMessageReceivedArgs e)
         {
+            if (!config.HelloEnabled)
+                return;
             var message = e.ChatMessage;
             var res = Messages.FirstOrDefault(x => x.UserId == message.UserId);
             if (res == null)
@@ -216,6 +254,41 @@ namespace HelloWorld
                     helloListBox.ScrollIntoView(helloListBox.Items[helloListBox.Items.Count - 1]);
                 });
             }
+            if (message.IsHighlighted)
+            {
+                consoleOut("Command Recieved!");
+                if (!config.RewardsEnabled)
+                    return;
+                HLMessage newHighlight = new HLMessage()
+                {
+                    UserId = message.UserId,
+                    Username = message.DisplayName,
+                    Message = message.Message,
+                    Sent = DateTime.Now
+                };
+                App.Current.Dispatcher.Invoke((Action)delegate
+                {
+                    Rewards.Add(newHighlight);
+                });
+            }
+        }
+
+        private void _client_OnLog(object sender, TwitchLib.Client.Events.OnLogArgs e)
+        {
+            consoleOut($"Client {e.Data}");
+        }
+        private void Remove_Click(object sender, RoutedEventArgs e)
+        {
+            Rewards.Remove(Rewards[rewardsList.SelectedIndex]);
+        }
+
+        public void consoleOut(string msg)
+        {
+            ConsoleString += $"{DateTime.Now.ToLocalTime()} {msg}{Environment.NewLine}";
+        }
+        public void consoleClear()
+        {
+            ConsoleString = $"{DateTime.Now.ToLocalTime()} I was just cleared!";
         }
     }
     public class Config
@@ -224,8 +297,17 @@ namespace HelloWorld
         public string Client { get; set; }
         public string User { get; set; }
         public string Auth { get; set; }
+        public bool HelloEnabled { get; set; }
+        public bool RewardsEnabled { get; set; }
     }
     public class FirstMessage
+    {
+        public string Username { get; set; }
+        public string UserId { get; set; }
+        public string Message { get; set; }
+        public DateTime Sent { get; set; }
+    }
+    public class HLMessage
     {
         public string Username { get; set; }
         public string UserId { get; set; }
